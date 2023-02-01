@@ -3,12 +3,20 @@
 use std::fs;
 use std::fmt;
 use std::process;
+use std::env;
 
 use itertools::{
     Itertools,
     EitherOrBoth::*,
 };
 use num_bigint::BigInt;
+
+enum ExitCode {
+    OK,
+    NoCommandArguments,
+    NoSuchFile,
+    TypeMismatch,
+}
 
 const CODE_PAGE : &'static [char] = &[
     '…', '‾', '‿', '¡', '¿', '·', '∧', '∨', '≔', '§', '¶', '∀', '∃', '◯', '√', '¬',
@@ -102,9 +110,6 @@ fn tokenize(v: Vec<char>) -> Vec<OxyToken> {
     }
 
     return tokens;
-    // return v.into_iter()
-    //     .map(|c| OxyToken { ops: vec![ c ] })
-    //     .collect();
 }
 
 fn range_inclusive(left: BigInt, right: BigInt) -> Vec<BigInt> {
@@ -170,12 +175,12 @@ impl OxyState {
     }
 
     fn mismatch<T: std::fmt::Display>(&mut self, op: T, args: &[&Atom]) -> Atom {
-        print!("Type Mismatch in {op}: No case for ( ");
+        eprint!("Type Mismatch in {op}: No case for ( ");
         for a in args {
-            print!("{:+} ", a);
+            eprint!("{:+} ", a);
         }
-        println!(")");
-        process::exit(2);
+        eprintln!(")");
+        process::exit(ExitCode::TypeMismatch as i32);
     }
 
     fn vectorize_dyad(&mut self, ops: Vec<OxyToken>, left: &Atom, right: &Atom) -> Atom {
@@ -439,6 +444,10 @@ impl OxyState {
                     v => { self.mismatch("↑", &[&v]); },
                 }
             },
+            // exit
+            ['·'] => {
+                process::exit(ExitCode::OK as i32);
+            },
             _ => {},
         }
     }
@@ -461,18 +470,28 @@ impl OxyState {
 }
 
 fn main() {
-    let contents = match fs::read_to_string("test.oxy") {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() <= 1 {
+        eprintln!("Error: Expected at least 1 argument");
+        eprintln!("Usage: {} file-name", args[0]);
+        process::exit(ExitCode::NoCommandArguments as i32);
+    }
+
+    let file_path = &args[1];
+
+    let contents = match fs::read_to_string(file_path) {
         Err(e) => {
-            println!("Could not read file: {e}");
-            process::exit(1);
+            eprintln!("Error: Could not read file: {e}");
+            process::exit(ExitCode::NoSuchFile as i32);
         },
         Ok(s) => s
     };
 
     let bytes = string_to_bytes(&contents);
 
-    println!("Bytes: {}", bytes.len());
-    println!("{:?}", bytes);
+    eprintln!("Bytes: {}", bytes.len());
+    eprintln!("{:?}", bytes);
 
     let ops = bytes_to_ops(&bytes);
     let tokens = tokenize(ops);
