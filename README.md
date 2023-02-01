@@ -9,6 +9,12 @@ Another golfing, stack-based language.
 
 Pushes the corresponding digit to the stack.
 
+### `₀` `₁` `₂` `₃` `₄` `₅` `₆` `₇` `₈` `₉` - Extend Digit
+
+Continues a digit literal; multiples the top of the stack by 10, and adds the correct value.
+
+Any `a` &rarr; `10a+N`. (Vectorizes.)
+
 ### `Λ` - Map
 
 Maps the inner code `Λ...°` onto a list.

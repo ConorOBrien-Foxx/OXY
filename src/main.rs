@@ -228,6 +228,15 @@ impl OxyState {
             // push digit
             [dig @ '0'..='9'] =>
                 self.stack.push(Atom::Big(BigInt::from(dig as u32 - '0' as u32))),
+            // digit extension
+            [dig @ '₀'..='₉'] => {
+                self.stack.push(Atom::Big(BigInt::from(10)));
+                self.exec(OxyToken { ops: vec!['×'], children: vec![] });
+                if dig != '₀' {
+                    self.stack.push(Atom::Big(BigInt::from(dig as u32 - '₀' as u32)));
+                    self.exec(OxyToken { ops: vec!['+'], children: vec![] });
+                }
+            },
             // singleton
             ['¡'] => {
                 let popped = self.pop();
